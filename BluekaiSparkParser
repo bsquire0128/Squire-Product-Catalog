@@ -1,0 +1,164 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Aug 22 15:35:37 2016
+
+@author: bsquire1271
+jimmyrcom
+"""
+
+#pyspark
+from collections import Counter
+
+seeds = sc.broadcast(set([248200]))
+
+RDDread = sc.textFile("file:/Users/bsquire1271/Desktop/bluekai_2016_8_15.tsv")
+
+#first line
+RDDread.first()
+
+#first n lines take(n)
+RDDread.take(5)
+
+#Using Map to split the file on pipe
+map1 = RDDread.map(lambda line: line.split("|"))
+
+#Using Map to split the file into lists and then split on each object in the list
+map2 = RDDread.map(lambda line: line.split("|")).map(mymap)
+
+#Using map to split the file into lists and then filter to make 
+#sure each list has 4 elements and then split on each object 
+#in the list
+map3 = RDDread.map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .flatMap(mymap)
+#Using mapt to split the file into lists and then filter to make 
+#sure each list has 4 elements and then split on each object 
+#in the list and count 
+map4 = RDDread.map(lambda line: line.split("|")) \
+			  .filter(remove_invalid) \
+			  .flatMap(mymap) \
+			  .map(lambda word: (word,1)) \
+			  .reduceByKey(lambda a, b: a + b)
+
+#This splits based on Pipe, makes sure each list is of length 4
+#Makes a new list based on the keyvalue pair BKid and Counter Categories
+#and then combines similar BKids
+map5 = RDDread.map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .map(mapByBKid) \
+		      .reduceByKey(lambda a, b: a + b)
+
+#This splits based on Pipe, makes sure each list is of length 4
+#Makes a new list based on the keyvalue pair Time Stamp and 
+#Counter Categories and then combines similar Time Stamp Id's
+map6 = RDDread.map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .map(mapByTS) \
+		      .reduceByKey(lambda a, b: a + b)		
+
+#This splits based on Pipe, makes sure each list is of length 4
+#Makes a new list based on the keyvalue pair site and 
+#Counter Categories and then combines similar site 
+map7 = RDDread.map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .map(mapBySite) \
+		      .reduceByKey(lambda a, b: a + b)		
+
+#This splits based on Pipe, makes sure each list is of length 4
+#Makes a new list based on the keyvalue pair Time stamp and 
+#Counter site and then combines similar site 
+map8 = RDDread.map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .map(sitesByTS) \
+		      .reduceByKey(lambda a, b: a + b)	
+
+#This splits based on Pipe of a distinct set of values, 
+#makes sure each list is of length 4
+#Makes a new list based on the keyvalue pair BKid and Counter Categories
+#and then combines similar BKids
+map9 = RDDread.distinct() \
+			  .map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .map(mapByBKid) \
+		      .reduceByKey(lambda a, b: a + b)
+
+#This splits based on Pipe of a distinct set of values, filters for
+#strings which contain items in the seed set makes sure each 
+#list is of length 4, Makes a new list based on the keyvalue pair 
+#BKid and Counter Categories and then combines similar BKids
+map10 = RDDread.distinct() \
+			  .filter(seedset) \
+			  .map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .map(mapByBKid) \
+		      .reduceByKey(lambda a, b: a + b)
+
+#This splits based on Pipe of a distinct set of values, filters for
+#strings which contain items in the seed set makes sure each 
+#list is of length 4, Makes a new list based on the keyvalue pair 
+#BKid and Counter Categories and then combines similar BKids
+map11 = RDDread.distinct() \
+			  .map(lambda line: line.split("|")) \
+		      .filter(remove_invalid) \
+		      .map(mapByBKid) \
+		      .filter(seedsetOnCats) \
+		      .reduceByKey(lambda a, b: a + b)
+
+def mymap(lst_obj):
+ 	clean_cats = []
+ 	id, cat, ts, site = lst_obj
+ 	cat_ses = cat.split(";")
+ 	for ses in cat_ses:
+ 		only_cats = ses.split(":")[1:]
+ 		for some_cat in only_cats:
+ 			clean_cats += some_cat.split(",")
+ 	return clean_cats
+
+def seedset(record):
+	global seeds
+	some_seeds = map(str,list(seeds.value))
+	return any(x in record for x in some_seeds)
+
+def seedsetOnCats(tup_obj):
+	global seeds
+	id, counts = tup_obj
+	some_seeds = map(str,list(seeds.value))
+	return any(x in counts for x in some_seeds)
+
+def remove_invalid(lst_obj):
+	return len(lst_obj) == 4
+
+def mapByBKid(lst_obj):
+	clean_cats = []
+	id, cat, ts, site = lst_obj
+	cat_ses = cat.split(";")
+	for ses in cat_ses:
+		only_cats = ses.split(":")[1:]
+		for some_cat in only_cats:
+			clean_cats += some_cat.split(",")
+	return (id, Counter(clean_cats))
+
+def mapByTS(lst_obj):
+	clean_cats = []
+	id, cat, ts, site = lst_obj
+	cat_ses = cat.split(";")
+	for ses in cat_ses:
+		only_cats = ses.split(":")[1:]
+		for some_cat in only_cats:
+			clean_cats += some_cat.split(",")
+	return (ts, Counter(clean_cats))
+
+def mapBySite(lst_obj):
+	clean_cats = []
+	id, cat, ts, site = lst_obj
+	cat_ses = cat.split(";")
+	for ses in cat_ses:
+		only_cats = ses.split(":")[1:]
+		for some_cat in only_cats:
+			clean_cats += some_cat.split(",")
+	return (site, Counter(clean_cats))
+
+def sitesByTS(lst_obj):
+	id, cat, ts, site = lst_obj
+	return (ts, Counter([site]))
+
