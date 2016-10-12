@@ -1,3 +1,3 @@
-# hello-world This is my first Read Me
+#Repo for projects and various Ideas related to my work
 
-Hi my name is Ben, I am a Big Data Analyst working as a Datascientist. I like food and Coffee.
+"The important thing is not to stop questioning. Curiosity has its own reason for existing." - Albert Einstein
