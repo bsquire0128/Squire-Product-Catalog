@@ -37,7 +37,7 @@ def main():
 def init():
     parser = argparse.ArgumentParser(description = 'Python Script to colorize graphml file')
     parser.add_argument('filename',type = str, help = 'filename of graphml file without extension (no .graphml part)')
-    parser.add_argument('visual_dict',type=str, help = 'dictionary object with format {'Node1':{'id':'node1id','color':'#ff6666','shape':'ellipse'}}'
+    parser.add_argument('visual_dict',type=str, help = "dictionary object with format {'Node1':{'id':'node1id','color':'#ff6666','shape':'ellipse'}}"
     return parser.parse_args()
 
 def parse_tree(graphme):
